@@ -69,28 +69,64 @@
     background:var(--bg-surface);
     position:sticky; top:56px;
     height:calc(100vh - 56px);
-    overflow-y:auto;
+    overflow-y:auto; overflow-x:hidden;
     padding:22px 14px 60px;
+    transition:width .22s ease;
   }
   .sidebar::-webkit-scrollbar{ width:6px; }
   .sidebar::-webkit-scrollbar-thumb{ background:var(--border); border-radius:4px; }
 
-  .nav-group{ margin-bottom:20px; }
-  .nav-group-title{
-    font-family:var(--mono); font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
-    color:var(--text-dim); padding:0 10px; margin-bottom:6px;
+  .rail-toggle{
+    display:flex; align-items:center; justify-content:center;
+    margin:0 0 18px auto; width:26px; height:26px; border-radius:6px;
+    background:var(--bg-elevated); border:1px solid var(--border); color:var(--text-dim);
+    cursor:pointer; font-family:var(--mono); font-size:13px;
   }
+  .rail-toggle:hover{ color:var(--cyan); border-color:var(--cyan-dim); }
+  .rail-toggle-icon{ display:inline-block; transition:transform .22s ease; }
+
+  .nav-group{ margin-bottom:8px; }
+  .nav-group-title{
+    display:flex; align-items:center; gap:8px; width:100%;
+    font-family:var(--mono); font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--text-dim); padding:8px 10px; margin-bottom:2px;
+    background:none; border:none; cursor:pointer; text-align:left; border-radius:6px;
+  }
+  .nav-group-title:hover{ color:var(--text); background:var(--bg-elevated); }
+  .nav-group-title .chevron{
+    font-size:10px; color:var(--text-dim); transition:transform .2s ease; flex-shrink:0;
+  }
+  .nav-group.collapsed .nav-group-title .chevron{ transform:rotate(-90deg); }
+
+  .nav-group-links-wrap{
+    display:grid; grid-template-rows:1fr; transition:grid-template-rows .22s ease;
+  }
+  .nav-group.collapsed .nav-group-links-wrap{ grid-template-rows:0fr; }
+  .nav-group-links-inner{ overflow:hidden; }
+
   .nav-link{
     display:flex; align-items:center; gap:8px;
     padding:7px 10px; border-radius:6px; font-size:13.5px; color:var(--text-muted);
-    border-left:2px solid transparent;
+    border-left:2px solid transparent; white-space:nowrap;
   }
   .nav-link:hover{ background:var(--bg-elevated); color:var(--text); }
   .nav-link.active{
     color:var(--cyan); background:var(--bg-elevated); border-left:2px solid var(--cyan);
     font-weight:500;
   }
-  .nav-link .n{ color:var(--text-dim); font-family:var(--mono); font-size:11px; width:16px; }
+  .nav-link .n{ color:var(--text-dim); font-family:var(--mono); font-size:11px; width:16px; flex-shrink:0; }
+
+  /* ---- rail (collapsed whole sidebar) mode ---- */
+  .sidebar.rail{ width:60px; padding-left:10px; padding-right:10px; }
+  .sidebar.rail .rail-toggle{ margin:0 auto 18px; }
+  .sidebar.rail .rail-toggle-icon{ transform:rotate(180deg); }
+  .sidebar.rail .nav-group-title .label,
+  .sidebar.rail .nav-group-title .chevron,
+  .sidebar.rail .nav-link .label{ display:none; }
+  .sidebar.rail .nav-group-title{ justify-content:center; padding:8px 0; }
+  .sidebar.rail .nav-link{ justify-content:center; padding:8px 0; }
+  .sidebar.rail .nav-group-links-wrap{ grid-template-rows:1fr !important; }
+  .sidebar.rail .nav-link .n{ width:auto; }
 
   main{ flex:1; min-width:0; }
 
@@ -278,8 +314,12 @@
     .sidebar{
       position:fixed; left:0; top:56px; z-index:40; height:calc(100vh - 56px);
       transform:translateX(-100%); transition:transform .25s ease; box-shadow:20px 0 40px rgba(0,0,0,0.4);
+      width:var(--sidebar-w) !important;
     }
     .sidebar.open{ transform:translateX(0); }
+    .sidebar.rail .label, .sidebar.rail .chevron{ display:inline !important; }
+    .sidebar.rail .nav-group-title, .sidebar.rail .nav-link{ justify-content:flex-start !important; padding:8px 10px !important; }
+    .rail-toggle{ display:none; }
     .menu-btn{ display:block; }
     .content, .hero{ padding-left:20px; padding-right:20px; }
     .grid-2{ grid-template-columns:1fr; }
@@ -298,52 +338,74 @@
 
 <div class="shell">
   <aside class="sidebar" id="sidebar">
-    <div class="nav-group">
-      <div class="nav-group-title">導論</div>
-      <a class="nav-link" data-target="intro" href="#intro"><span class="n">01</span>開放式網路是什麼</a>
-      <a class="nav-link" data-target="hardware" href="#hardware"><span class="n">02</span>交換機硬體架構</a>
+    <button class="rail-toggle" id="railToggle" title="收合導覽列">
+      <span class="rail-toggle-icon">‹</span>
+    </button>
+
+    <div class="nav-group" data-group="g1">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">導論</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="intro" href="#intro" title="開放式網路是什麼"><span class="n">01</span><span class="label">開放式網路是什麼</span></a>
+        <a class="nav-link" data-target="hardware" href="#hardware" title="交換機硬體架構"><span class="n">02</span><span class="label">交換機硬體架構</span></a>
+      </div></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">光學基礎</div>
-      <a class="nav-link" data-target="fiber" href="#fiber"><span class="n">03</span>光纖與連接器</a>
-      <a class="nav-link" data-target="optical-safety" href="#optical-safety"><span class="n">04</span>光學參數與雷射安全</a>
+    <div class="nav-group" data-group="g2">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">光學基礎</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="fiber" href="#fiber" title="光纖與連接器"><span class="n">03</span><span class="label">光纖與連接器</span></a>
+        <a class="nav-link" data-target="optical-safety" href="#optical-safety" title="光學參數與雷射安全"><span class="n">04</span><span class="label">光學參數與雷射安全</span></a>
+      </div></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">光模組</div>
-      <a class="nav-link" data-target="optics" href="#optics"><span class="n">05</span>Transceiver 基礎</a>
-      <a class="nav-link" data-target="ddm" href="#ddm"><span class="n">06</span>I2C / MSA / DDM</a>
-      <a class="nav-link" data-target="cmis" href="#cmis"><span class="n">07</span>CMIS 管理介面</a>
+    <div class="nav-group" data-group="g3">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">光模組</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="optics" href="#optics" title="Transceiver 基礎"><span class="n">05</span><span class="label">Transceiver 基礎</span></a>
+        <a class="nav-link" data-target="ddm" href="#ddm" title="I2C / MSA / DDM"><span class="n">06</span><span class="label">I2C / MSA / DDM</span></a>
+        <a class="nav-link" data-target="cmis" href="#cmis" title="CMIS 管理介面"><span class="n">07</span><span class="label">CMIS 管理介面</span></a>
+      </div></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">Linux 指令</div>
-      <a class="nav-link" data-target="iplink" href="#iplink"><span class="n">08</span>ip link</a>
-      <a class="nav-link" data-target="dmesg" href="#dmesg"><span class="n">09</span>dmesg</a>
-      <a class="nav-link" data-target="i2c" href="#i2c"><span class="n">10</span>i2cdetect / i2cdump</a>
+    <div class="nav-group" data-group="g4">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">Linux 指令</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="iplink" href="#iplink" title="ip link"><span class="n">08</span><span class="label">ip link</span></a>
+        <a class="nav-link" data-target="dmesg" href="#dmesg" title="dmesg"><span class="n">09</span><span class="label">dmesg</span></a>
+        <a class="nav-link" data-target="i2c" href="#i2c" title="i2cdetect / i2cdump"><span class="n">10</span><span class="label">i2cdetect / i2cdump</span></a>
+      </div></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">ASIC / SDK</div>
-      <a class="nav-link" data-target="asic-sdk" href="#asic-sdk"><span class="n">11</span>Broadcom SDK 診斷</a>
+    <div class="nav-group" data-group="g5">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">ASIC / SDK</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="asic-sdk" href="#asic-sdk" title="Broadcom SDK 診斷"><span class="n">11</span><span class="label">Broadcom SDK 診斷</span></a>
+      </div></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">Console 連線</div>
-      <a class="nav-link" data-target="console" href="#console"><span class="n">12</span>minicom / PuTTY</a>
+    <div class="nav-group" data-group="g6">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">Console 連線</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="console" href="#console" title="minicom / PuTTY"><span class="n">12</span><span class="label">minicom / PuTTY</span></a>
+      </div></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">網路基本觀念</div>
-      <a class="nav-link" data-target="vlan" href="#vlan"><span class="n">13</span>VLAN</a>
-      <a class="nav-link" data-target="lacp" href="#lacp"><span class="n">14</span>LACP</a>
-      <a class="nav-link" data-target="mtu" href="#mtu"><span class="n">15</span>MTU / Jumbo Frame</a>
+    <div class="nav-group" data-group="g7">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">網路基本觀念</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="vlan" href="#vlan" title="VLAN"><span class="n">13</span><span class="label">VLAN</span></a>
+        <a class="nav-link" data-target="lacp" href="#lacp" title="LACP"><span class="n">14</span><span class="label">LACP</span></a>
+        <a class="nav-link" data-target="mtu" href="#mtu" title="MTU / Jumbo Frame"><span class="n">15</span><span class="label">MTU / Jumbo Frame</span></a>
+      </div></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">測試與除錯</div>
-      <a class="nav-link" data-target="test-equipment" href="#test-equipment"><span class="n">16</span>光功率計 / OTDR</a>
-      <a class="nav-link" data-target="traffic-test" href="#traffic-test"><span class="n">17</span>Ixia / Spirent 流量測試</a>
-      <a class="nav-link" data-target="troubleshoot-sop" href="#troubleshoot-sop"><span class="n">18</span>除錯流程 SOP</a>
+    <div class="nav-group" data-group="g8">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">測試與除錯</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="test-equipment" href="#test-equipment" title="光功率計 / OTDR"><span class="n">16</span><span class="label">光功率計 / OTDR</span></a>
+        <a class="nav-link" data-target="traffic-test" href="#traffic-test" title="Ixia / Spirent 流量測試"><span class="n">17</span><span class="label">Ixia / Spirent 流量測試</span></a>
+        <a class="nav-link" data-target="troubleshoot-sop" href="#troubleshoot-sop" title="除錯流程 SOP"><span class="n">18</span><span class="label">除錯流程 SOP</span></a>
+      </div></div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-title">參考</div>
-      <a class="nav-link" data-target="glossary" href="#glossary"><span class="n">19</span>縮寫速查表</a>
-      <a class="nav-link" data-target="roadmap" href="#roadmap"><span class="n">20</span>擴充路線圖</a>
+    <div class="nav-group" data-group="g9">
+      <button class="nav-group-title"><span class="chevron">▾</span><span class="label">參考</span></button>
+      <div class="nav-group-links-wrap"><div class="nav-group-links-inner">
+        <a class="nav-link" data-target="glossary" href="#glossary" title="縮寫速查表"><span class="n">19</span><span class="label">縮寫速查表</span></a>
+        <a class="nav-link" data-target="roadmap" href="#roadmap" title="擴充路線圖"><span class="n">20</span><span class="label">擴充路線圖</span></a>
+      </div></div>
     </div>
   </aside>
 
@@ -998,6 +1060,11 @@ BCM.0> port xe1 status">複製</button></div>
         const id = entry.target.id;
         navLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
         crumb.textContent = '~/' + id;
+        const activeLink = document.querySelector('.nav-link[data-target="' + id + '"]');
+        if(activeLink){
+          const group = activeLink.closest('.nav-group');
+          if(group) group.classList.remove('collapsed');
+        }
       }
     });
   }, { rootMargin: '-20% 0px -70% 0px' });
@@ -1008,6 +1075,20 @@ BCM.0> port xe1 status">複製</button></div>
   const sidebar = document.getElementById('sidebar');
   menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
   navLinks.forEach(a => a.addEventListener('click', () => sidebar.classList.remove('open')));
+
+  // ---- accordion: collapse/expand each nav group ----
+  document.querySelectorAll('.nav-group-title').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(sidebar.classList.contains('rail')) return; // 窄版模式下不切換手風琴
+      btn.closest('.nav-group').classList.toggle('collapsed');
+    });
+  });
+
+  // ---- collapse whole sidebar into icon rail ----
+  const railToggle = document.getElementById('railToggle');
+  railToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('rail');
+  });
 </script>
 
 </body>
