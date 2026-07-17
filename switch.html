@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>白牌交換機實戰手冊 · Linux × 光模組 × 網通</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e13;
+    --bg-surface:#10161d;
+    --bg-elevated:#161f29;
+    --border:#212c38;
+    --border-soft:#1a232d;
+    --text:#e8eef4;
+    --text-muted:#8390a0;
+    --text-dim:#586675;
+    --cyan:#4fd8c9;
+    --cyan-dim:#2a5a54;
+    --amber:#f0ab5d;
+    --amber-dim:#5a4227;
+    --red:#e2685f;
+    --sidebar-w:272px;
+    --mono: 'JetBrains Mono', 'Noto Sans TC', monospace;
+    --sans: 'Noto Sans TC', -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.75;
+    font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--cyan-dim); color:var(--text); }
+
+  a{ color:var(--cyan); text-decoration:none; }
+
+  code, .mono{ font-family:var(--mono); }
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    height:56px; display:flex; align-items:center; gap:12px;
+    padding:0 20px;
+    background:rgba(10,14,19,0.9); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .topbar .brand{
+    font-family:var(--mono); font-weight:700; font-size:14.5px; color:var(--text);
+    display:flex; align-items:center; gap:8px; letter-spacing:0.2px;
+  }
+  .topbar .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 8px var(--cyan);}
+  .topbar .path{ color:var(--text-dim); font-family:var(--mono); font-size:12.5px; }
+  .menu-btn{
+    display:none; margin-left:auto; background:none; border:1px solid var(--border);
+    color:var(--text); width:34px; height:34px; border-radius:6px; cursor:pointer; font-size:16px;
+  }
+
+  /* ---------- Layout ---------- */
+  .shell{ display:flex; min-height:100vh; }
+
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0;
+    border-right:1px solid var(--border-soft);
+    background:var(--bg-surface);
+    position:sticky; top:56px;
+    height:calc(100vh - 56px);
+    overflow-y:auto;
+    padding:22px 14px 60px;
+  }
+  .sidebar::-webkit-scrollbar{ width:6px; }
+  .sidebar::-webkit-scrollbar-thumb{ background:var(--border); border-radius:4px; }
+
+  .nav-group{ margin-bottom:20px; }
+  .nav-group-title{
+    font-family:var(--mono); font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--text-dim); padding:0 10px; margin-bottom:6px;
+  }
+  .nav-link{
+    display:flex; align-items:center; gap:8px;
+    padding:7px 10px; border-radius:6px; font-size:13.5px; color:var(--text-muted);
+    border-left:2px solid transparent;
+  }
+  .nav-link:hover{ background:var(--bg-elevated); color:var(--text); }
+  .nav-link.active{
+    color:var(--cyan); background:var(--bg-elevated); border-left:2px solid var(--cyan);
+    font-weight:500;
+  }
+  .nav-link .n{ color:var(--text-dim); font-family:var(--mono); font-size:11px; width:16px; }
+
+  main{ flex:1; min-width:0; }
+
+  .content{ max-width:880px; margin:0 auto; padding:0 40px 120px; }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    padding:64px 40px 40px; max-width:960px; margin:0 auto;
+  }
+  .hero-eyebrow{
+    font-family:var(--mono); font-size:12px; color:var(--cyan); letter-spacing:2px;
+    text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:10px;
+  }
+  .hero-eyebrow::before{ content:''; width:24px; height:1px; background:var(--cyan); }
+  .hero h1{
+    font-family:var(--mono); font-weight:700; font-size:clamp(28px, 4vw, 42px);
+    line-height:1.25; letter-spacing:-0.5px; color:var(--text); margin-bottom:16px;
+  }
+  .hero h1 span{ color:var(--cyan); }
+  .hero p.lead{
+    color:var(--text-muted); font-size:16px; max-width:640px; margin-bottom:32px;
+  }
+
+  .term{
+    background:var(--bg-surface); border:1px solid var(--border);
+    border-radius:10px; overflow:hidden; box-shadow:0 20px 60px -20px rgba(0,0,0,0.6);
+  }
+  .term-bar{
+    display:flex; align-items:center; gap:8px; padding:10px 14px;
+    background:var(--bg-elevated); border-bottom:1px solid var(--border-soft);
+  }
+  .term-dot{ width:10px; height:10px; border-radius:50%; }
+  .term-bar .path{ margin-left:8px; font-family:var(--mono); font-size:12px; color:var(--text-dim); }
+  .term-body{ padding:18px 20px; font-family:var(--mono); font-size:13.5px; min-height:190px; color:#c8d3dd; }
+  .term-body .line{ white-space:pre-wrap; }
+  .term-body .prompt{ color:var(--cyan); }
+  .term-body .comment{ color:var(--text-dim); }
+  .term-body .ok{ color:#7ee0a8; }
+  .term-body .warn{ color:var(--amber); }
+  .caret{ display:inline-block; width:7px; height:14px; background:var(--cyan); vertical-align:-2px; animation:blink 1s step-end infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------- Sections ---------- */
+  section.doc{ padding-top:64px; scroll-margin-top:74px; }
+  section.doc:first-of-type{ padding-top:0; }
+
+  .sec-tag{
+    font-family:var(--mono); font-size:11.5px; color:var(--amber); letter-spacing:1.5px;
+    text-transform:uppercase; margin-bottom:10px;
+  }
+  h2.sec-title{
+    font-family:var(--mono); font-size:26px; font-weight:700; color:var(--text);
+    margin-bottom:14px; letter-spacing:-0.3px;
+  }
+  h3.sub-title{
+    font-family:var(--mono); font-size:17px; font-weight:600; color:var(--text);
+    margin:30px 0 12px; display:flex; align-items:center; gap:10px;
+  }
+  h3.sub-title::before{ content:'#'; color:var(--cyan); }
+
+  p{ color:var(--text-muted); margin-bottom:14px; }
+  p strong{ color:var(--text); font-weight:600; }
+
+  ul.plain{ margin:0 0 16px 0; padding-left:20px; color:var(--text-muted); }
+  ul.plain li{ margin-bottom:6px; }
+  ul.plain li strong{ color:var(--text); }
+
+  .callout{
+    border:1px solid var(--border); background:var(--bg-surface);
+    border-left:3px solid var(--cyan);
+    border-radius:6px; padding:14px 16px; margin:18px 0; font-size:14px; color:var(--text-muted);
+  }
+  .callout.warn{ border-left-color:var(--amber); }
+  .callout b{ color:var(--text); }
+
+  /* code block */
+  .code-block{
+    position:relative; background:var(--bg-surface); border:1px solid var(--border);
+    border-radius:8px; margin:16px 0; overflow:hidden;
+  }
+  .code-block .cb-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 14px; background:var(--bg-elevated); border-bottom:1px solid var(--border-soft);
+    font-family:var(--mono); font-size:11.5px; color:var(--text-dim); letter-spacing:0.5px;
+  }
+  .code-block pre{
+    padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13.5px; color:#c8d3dd;
+  }
+  .copy-btn{
+    background:none; border:1px solid var(--border); color:var(--text-dim);
+    font-family:var(--mono); font-size:11px; padding:3px 9px; border-radius:5px; cursor:pointer;
+  }
+  .copy-btn:hover{ color:var(--cyan); border-color:var(--cyan); }
+
+  /* cards */
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:20px 0; }
+  .card{
+    background:var(--bg-surface); border:1px solid var(--border); border-radius:10px; padding:20px;
+  }
+  .card h4{ font-family:var(--mono); font-size:14.5px; color:var(--cyan); margin-bottom:10px; display:flex; align-items:center; gap:8px;}
+  .card p{ font-size:13.5px; margin-bottom:8px; }
+  .card ol{ padding-left:18px; font-size:13.5px; color:var(--text-muted); }
+  .card ol li{ margin-bottom:6px; }
+  .card ol li b{ color:var(--text); }
+
+  .kv{
+    display:grid; grid-template-columns: 140px 1fr; gap:6px 14px; font-size:13px; margin-top:12px;
+  }
+  .kv .k{ color:var(--text-dim); font-family:var(--mono); }
+  .kv .v{ color:var(--text); font-family:var(--mono); }
+
+  table{ width:100%; border-collapse:collapse; margin:16px 0; font-size:13.5px; }
+  th, td{ text-align:left; padding:10px 12px; border-bottom:1px solid var(--border-soft); }
+  th{ color:var(--text-dim); font-family:var(--mono); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; }
+  td{ color:var(--text-muted); }
+  td b, td strong{ color:var(--text); }
+  tr:hover td{ background:var(--bg-surface); }
+
+  .tag{
+    display:inline-block; font-family:var(--mono); font-size:11px; padding:2px 8px;
+    border-radius:20px; border:1px solid var(--border); color:var(--text-dim); margin-right:4px;
+  }
+  .tag.cyan{ color:var(--cyan); border-color:var(--cyan-dim); background:rgba(79,216,201,0.08); }
+  .tag.amber{ color:var(--amber); border-color:var(--amber-dim); background:rgba(240,171,93,0.08); }
+
+  /* register / eeprom hex grid — signature element */
+  .reg-wrap{
+    background:var(--bg-surface); border:1px solid var(--border); border-radius:10px;
+    padding:18px 20px; margin:20px 0;
+  }
+  .reg-wrap .reg-label{ font-family:var(--mono); font-size:11.5px; color:var(--text-dim); margin-bottom:12px; }
+  .reg-grid{
+    display:grid; grid-template-columns:repeat(16, 1fr); gap:4px;
+  }
+  .reg-cell{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; border-radius:3px;
+    background:var(--bg-elevated); color:var(--text-dim); border:1px solid var(--border-soft);
+  }
+  .reg-cell.hl{ background:rgba(79,216,201,0.14); color:var(--cyan); border-color:var(--cyan-dim); }
+  .reg-cell.hl2{ background:rgba(240,171,93,0.14); color:var(--amber); border-color:var(--amber-dim); }
+  .reg-legend{ display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--text-dim); flex-wrap:wrap; }
+  .reg-legend span{ display:flex; align-items:center; gap:6px; }
+  .reg-legend i{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+  /* DDM readout */
+  .ddm-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin:18px 0; }
+  .ddm-card{
+    background:var(--bg-surface); border:1px solid var(--border); border-radius:8px; padding:14px;
+    text-align:center;
+  }
+  .ddm-card .label{ font-family:var(--mono); font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+  .ddm-card .value{ font-family:var(--mono); font-size:20px; font-weight:600; color:var(--cyan); }
+  .ddm-card .value.warn{ color:var(--amber); }
+  .ddm-card .range{ font-size:10.5px; color:var(--text-dim); margin-top:4px; }
+
+  svg.diagram{ width:100%; height:auto; margin:20px 0; }
+
+  .divider{ height:1px; background:var(--border-soft); margin:48px 0; }
+
+  /* roadmap */
+  .roadmap{
+    background:var(--bg-surface); border:1px dashed var(--border); border-radius:10px; padding:24px;
+    margin-top:20px;
+  }
+  .roadmap h3{ font-family:var(--mono); font-size:15px; color:var(--text); margin-bottom:14px; }
+  .roadmap ul{ list-style:none; }
+  .roadmap li{
+    display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-soft);
+    font-size:13.5px; color:var(--text-muted);
+  }
+  .roadmap li:last-child{ border-bottom:none; }
+  .roadmap li .box{
+    width:14px; height:14px; border:1px solid var(--border); border-radius:3px; flex-shrink:0;
+  }
+  .roadmap li b{ color:var(--text); }
+  .roadmap .status{ margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--text-dim); }
+
+  footer{
+    text-align:center; padding:40px; color:var(--text-dim); font-size:12.5px; font-family:var(--mono);
+    border-top:1px solid var(--border-soft);
+  }
+
+  @media (max-width: 900px){
+    .sidebar{
+      position:fixed; left:0; top:56px; z-index:40; height:calc(100vh - 56px);
+      transform:translateX(-100%); transition:transform .25s ease; box-shadow:20px 0 40px rgba(0,0,0,0.4);
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .menu-btn{ display:block; }
+    .content, .hero{ padding-left:20px; padding-right:20px; }
+    .grid-2{ grid-template-columns:1fr; }
+    .ddm-grid{ grid-template-columns:repeat(2,1fr); }
+    .reg-grid{ grid-template-columns:repeat(8, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="menu-btn" id="menuBtn">☰</button>
+  <div class="brand"><span class="dot"></span>SWITCH//HANDBOOK</div>
+  <div class="path mono" id="crumb">~/intro</div>
+</div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="nav-group">
+      <div class="nav-group-title">導論</div>
+      <a class="nav-link" data-target="intro" href="#intro"><span class="n">01</span>開放式網路是什麼</a>
+      <a class="nav-link" data-target="hardware" href="#hardware"><span class="n">02</span>交換機硬體架構</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">光學基礎</div>
+      <a class="nav-link" data-target="fiber" href="#fiber"><span class="n">03</span>光纖與連接器</a>
+      <a class="nav-link" data-target="optical-safety" href="#optical-safety"><span class="n">04</span>光學參數與雷射安全</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">光模組</div>
+      <a class="nav-link" data-target="optics" href="#optics"><span class="n">05</span>Transceiver 基礎</a>
+      <a class="nav-link" data-target="ddm" href="#ddm"><span class="n">06</span>I2C / MSA / DDM</a>
+      <a class="nav-link" data-target="cmis" href="#cmis"><span class="n">07</span>CMIS 管理介面</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Linux 指令</div>
+      <a class="nav-link" data-target="iplink" href="#iplink"><span class="n">08</span>ip link</a>
+      <a class="nav-link" data-target="dmesg" href="#dmesg"><span class="n">09</span>dmesg</a>
+      <a class="nav-link" data-target="i2c" href="#i2c"><span class="n">10</span>i2cdetect / i2cdump</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">ASIC / SDK</div>
+      <a class="nav-link" data-target="asic-sdk" href="#asic-sdk"><span class="n">11</span>Broadcom SDK 診斷</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">Console 連線</div>
+      <a class="nav-link" data-target="console" href="#console"><span class="n">12</span>minicom / PuTTY</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">網路基本觀念</div>
+      <a class="nav-link" data-target="vlan" href="#vlan"><span class="n">13</span>VLAN</a>
+      <a class="nav-link" data-target="lacp" href="#lacp"><span class="n">14</span>LACP</a>
+      <a class="nav-link" data-target="mtu" href="#mtu"><span class="n">15</span>MTU / Jumbo Frame</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">測試與除錯</div>
+      <a class="nav-link" data-target="test-equipment" href="#test-equipment"><span class="n">16</span>光功率計 / OTDR</a>
+      <a class="nav-link" data-target="traffic-test" href="#traffic-test"><span class="n">17</span>Ixia / Spirent 流量測試</a>
+      <a class="nav-link" data-target="troubleshoot-sop" href="#troubleshoot-sop"><span class="n">18</span>除錯流程 SOP</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-title">參考</div>
+      <a class="nav-link" data-target="glossary" href="#glossary"><span class="n">19</span>縮寫速查表</a>
+      <a class="nav-link" data-target="roadmap" href="#roadmap"><span class="n">20</span>擴充路線圖</a>
+    </div>
+  </aside>
+
+  <main>
+    <div class="hero">
+      <div class="hero-eyebrow">Field Manual · v0.1</div>
+      <h1>白牌交換機實戰手冊<br><span>Linux</span> × 光模組 × 網通協定</h1>
+      <p class="lead">從一台裸機交換器（Bare-Metal Switch）出發，把 Console 連線、Linux 硬體除錯指令，
+      到 VLAN／LACP／MTU 這些網路概念，整理成一份可以持續擴充的內部知識庫。</p>
+
+      <div class="term">
+        <div class="term-bar">
+          <div class="term-dot" style="background:#e2685f"></div>
+          <div class="term-dot" style="background:#f0ab5d"></div>
+          <div class="term-dot" style="background:#4fd8c9"></div>
+          <span class="path">intern@edgecore-switch:~</span>
+        </div>
+        <div class="term-body" id="termBody"></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ================= 01 INTRO ================= -->
+      <section class="doc" id="intro">
+        <div class="sec-tag">01 · Overview</div>
+        <h2 class="sec-title">開放式網路（Open Networking）是什麼</h2>
+        <p>傳統交換機廠商（Cisco、Juniper）採取<b>軟硬體綁死</b>的模式：買了硬體，就只能用原廠附贈的專有作業系統。
+        鈺登（Edgecore）所屬的智邦集團，走的是<b>軟硬體解耦（Disaggregation）</b>路線——硬體與作業系統各自獨立採購。</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <h4>◆ Bare-Metal Switch</h4>
+            <p>出廠時交換器內部幾乎是空的，沒有完整作業系統，客戶依照自己的需求選擇要安裝的網路作業系統（NOS）。</p>
+          </div>
+          <div class="card">
+            <h4>◆ ONIE</h4>
+            <p>Open Network Install Environment，安裝在 Bootloader 階段，功能類似電腦的 BIOS/Grub，負責把 NOS 安裝進交換器。</p>
+          </div>
+        </div>
+
+        <h3 class="sub-title">常見的 NOS（Network Operating System）</h3>
+        <table>
+          <tr><th>名稱</th><th>說明</th></tr>
+          <tr><td><b>SONiC</b></td><td>Software for Open Networking in the Cloud，微軟主導的開源交換機系統，基於 Debian Linux，目前是 AI 數據中心主流，<b>鈺登是 SONiC 的主要硬體支持者</b>。</td></tr>
+          <tr><td><b>EcNOS</b></td><td>Accton / Edgecore 自研的網路作業系統。</td></tr>
+        </table>
+
+        <div class="callout">
+          <b>白話理解：</b>ONIE 就像手機的 Recovery Mode，交換機開機時先進 ONIE，再由 ONIE 去網路上抓取並安裝指定版本的 SONiC 或 EcNOS。
+        </div>
+      </section>
+
+      <!-- ================= 02 HARDWARE ================= -->
+      <section class="doc" id="hardware">
+        <div class="sec-tag">02 · Architecture</div>
+        <h2 class="sec-title">交換機硬體架構</h2>
+        <p>拆開一台鈺登交換機，主要分成三大區塊：控制面（CPU）、轉發面（ASIC）、以及光模組插槽。</p>
+
+        <svg class="diagram" viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="#4fd8c9"/>
+            </marker>
+          </defs>
+          <rect x="0" y="0" width="720" height="220" fill="none"/>
+          <!-- CPU box -->
+          <rect x="30" y="40" width="180" height="90" rx="8" fill="#10161d" stroke="#212c38"/>
+          <text x="120" y="70" fill="#e8eef4" font-family="JetBrains Mono" font-size="13" text-anchor="middle" font-weight="600">CPU Subsystem</text>
+          <text x="120" y="90" fill="#8390a0" font-family="JetBrains Mono" font-size="11" text-anchor="middle">Intel / ARM</text>
+          <text x="120" y="106" fill="#8390a0" font-family="JetBrains Mono" font-size="11" text-anchor="middle">Linux · 控制面</text>
+
+          <!-- ASIC box -->
+          <rect x="290" y="40" width="180" height="90" rx="8" fill="#10161d" stroke="#4fd8c9"/>
+          <text x="380" y="70" fill="#4fd8c9" font-family="JetBrains Mono" font-size="13" text-anchor="middle" font-weight="600">Switch ASIC</text>
+          <text x="380" y="90" fill="#8390a0" font-family="JetBrains Mono" font-size="11" text-anchor="middle">Broadcom Trident/Tomahawk</text>
+          <text x="380" y="106" fill="#8390a0" font-family="JetBrains Mono" font-size="11" text-anchor="middle">Marvell · 轉發面</text>
+
+          <!-- Optics box -->
+          <rect x="550" y="40" width="140" height="90" rx="8" fill="#10161d" stroke="#f0ab5d"/>
+          <text x="620" y="70" fill="#f0ab5d" font-family="JetBrains Mono" font-size="13" text-anchor="middle" font-weight="600">光模組插槽</text>
+          <text x="620" y="90" fill="#8390a0" font-family="JetBrains Mono" font-size="11" text-anchor="middle">SFP / QSFP</text>
+          <text x="620" y="106" fill="#8390a0" font-family="JetBrains Mono" font-size="11" text-anchor="middle">OSFP Cage</text>
+
+          <!-- arrows -->
+          <line x1="210" y1="85" x2="285" y2="85" stroke="#4fd8c9" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="248" y="75" fill="#586675" font-family="JetBrains Mono" font-size="9.5" text-anchor="middle">PCIe/I2C</text>
+          <line x1="470" y1="85" x2="545" y2="85" stroke="#f0ab5d" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <text x="508" y="75" fill="#586675" font-family="JetBrains Mono" font-size="9.5" text-anchor="middle">高速差動</text>
+
+          <text x="360" y="180" fill="#586675" font-family="JetBrains Mono" font-size="11" text-anchor="middle">CPU 跑不動 400G/800G 流量 → 全部交給 ASIC 以線速（Line Rate）轉發</text>
+        </svg>
+
+        <div class="kv">
+          <div class="k">控制面</div><div class="v">CPU（x86/ARM）跑 Linux、處理 OSPF/BGP、經 I2C/PCIe 控制下層</div>
+          <div class="k">轉發面</div><div class="v">Switch ASIC（Broadcom Trident/Tomahawk、Marvell）硬體級封包轉發</div>
+          <div class="k">介面端</div><div class="v">ASIC 高速訊號拉到面板插槽（Cage），插上光收發模組</div>
+        </div>
+      </section>
+
+      <!-- ================= 03 FIBER ================= -->
+      <section class="doc" id="fiber">
+        <div class="sec-tag">03 · 光學基礎</div>
+        <h2 class="sec-title">光纖與連接器基礎</h2>
+        <p>光模組再怎麼厲害，最終還是要靠實體光纖傳光。實習現場最常混淆的就是「單模／多模」和「拋光面」，插錯一個顏色的跳線，訊號直接不通或損耗爆表。</p>
+
+        <table>
+          <tr><th>類型</th><th>纖芯</th><th>常見波長</th><th>傳輸距離</th><th>應用</th></tr>
+          <tr><td class="mono"><b>MMF</b> 多模光纖</td><td>50/62.5μm（較粗）</td><td>850nm</td><td>短距（&lt;100m~500m）</td><td>機櫃內、資料中心短連接，通常搭配 <b>VCSEL</b> 雷射，成本較低</td></tr>
+          <tr><td class="mono"><b>SMF</b> 單模光纖</td><td>9μm（較細）</td><td>1310nm / 1550nm</td><td>長距（數公里~數十公里）</td><td>機房間、跨樓層長距離骨幹連接</td></tr>
+        </table>
+
+        <div class="grid-2">
+          <div class="card">
+            <h4>◆ 連接器：LC vs MPO/MTP</h4>
+            <p><b>LC</b>：最常見的雙芯接頭，一般 SFP/QSFP 單通道模組用。</p>
+            <p><b>MPO/MTP</b>：一次集成 8/12/24 芯，用在 QSFP-DD/OSFP 這類多通道高速模組的 breakout 應用。</p>
+          </div>
+          <div class="card">
+            <h4>◆ 拋光面：UPC vs APC</h4>
+            <p><b>UPC</b>（藍色接頭）：平面拋光，反射損耗較低但仍有些微反射。</p>
+            <p><b>APC</b>（綠色接頭）：8° 角度拋光，幾乎消除反射，常用於類比或高精度長距傳輸。</p>
+          </div>
+        </div>
+
+        <div class="callout warn">
+          <b>現場地雷：</b>UPC 與 APC 接頭<b>絕對不能混插</b>——角度不同會造成物理錯位，輕則訊號劣化，重則刮傷光纖端面。第一次領料時務必核對顏色（藍 = UPC，綠 = APC）。
+        </div>
+      </section>
+
+      <!-- ================= 04 OPTICAL SAFETY ================= -->
+      <section class="doc" id="optical-safety">
+        <div class="sec-tag">04 · 光學基礎</div>
+        <h2 class="sec-title">光學參數與雷射安全</h2>
+        <p>光模組的規格書上永遠會出現這幾個參數，看不懂就沒辦法判斷一條鏈路「通不通、好不好」：</p>
+
+        <div class="kv">
+          <div class="k">Insertion Loss</div><div class="v">插入損耗：訊號通過連接器/接頭後的功率衰減，數值越小越好（一般 &lt; 0.3dB）</div>
+          <div class="k">Return Loss</div><div class="v">回波損耗：訊號被反射回發射端的比例，數值越大代表反射越少、越好</div>
+          <div class="k">Attenuation</div><div class="v">光纖本身每公里的衰減量，SMF 約 0.2~0.35 dB/km</div>
+          <div class="k">Link Budget</div><div class="v">發射功率 − 各項損耗總和，決定這條鏈路最遠能撐多遠</div>
+        </div>
+
+        <h3 class="sub-title">雷射安全等級</h3>
+        <p>光模組內建的雷射看不見（多為紅外光），但功率足以傷害視網膜，實習現場的基本安全守則：</p>
+        <ul class="plain">
+          <li><strong>絕對不要用肉眼直視</strong>光纖端面或模組發射孔，尤其是「看起來沒有插東西」的活動端口</li>
+          <li>大多數資料中心用模組屬於 <span class="tag amber">Class 1M</span>，肉眼直視安全，但用放大鏡/ 顯微鏡觀察時仍具危險性</li>
+          <li>不使用中的光纖端口，務必蓋上防塵蓋（同時防止雷射外洩與灰塵進入）</li>
+          <li>清潔光纖端面要用專用的光纖清潔筆/清潔布，不可用一般衛生紙或酒精棉片以外的東西擦拭</li>
+        </ul>
+      </section>
+
+      <!-- ================= 05 OPTICS ================= -->
+      <section class="doc" id="optics">
+        <div class="sec-tag">05 · Transceiver</div>
+        <h2 class="sec-title">光模組（Transceiver）基礎</h2>
+        <p>光模組是交換機面對外界的窗口，封裝規格會隨傳輸速率演進：</p>
+        <table>
+          <tr><th>封裝規格</th><th>常見速率</th><th>備註</th></tr>
+          <tr><td class="mono"><b>QSFP28</b></td><td>100G</td><td>四通道 25G，早期高速交換主力</td></tr>
+          <tr><td class="mono"><b>QSFP-DD</b></td><td>400G</td><td>Double Density，針腳更多、頻寬更高</td></tr>
+          <tr><td class="mono"><b>OSFP</b></td><td>400G / 800G</td><td>散熱空間更大，AI 數據中心主流</td></tr>
+        </table>
+        <div class="callout">
+          <b>MSA（Multi-Source Agreement）：</b>業界共同制定的光模組暫存器地圖，例如 <span class="tag cyan">SFF-8472</span>
+          <span class="tag cyan">SFF-8636</span>。工程師必須知道哪個 Address 存溫度、哪個存接收光功率（Rx Power）。
+        </div>
+      </section>
+
+      <!-- ================= 04 DDM ================= -->
+      <section class="doc" id="ddm">
+        <div class="sec-tag">06 · Diagnostics</div>
+        <h2 class="sec-title">I2C 匯流排、MSA 暫存器與 DDM/DOM</h2>
+        <p>交換機的溫度、風扇、電源，以及光模組內部的 EEPROM，都是透過 <b>I2C（Inter-Integrated Circuit）</b>匯流排讀取。
+        光模組製造商會把波長、廠商名稱、序號等資訊寫進 EEPROM，通常掛在 <span class="tag amber">0x50</span> /
+        <span class="tag amber">0x51</span> 這兩個硬體地址。</p>
+
+        <div class="reg-wrap">
+          <div class="reg-label mono">i2cdump -y 1 0x50 — 光模組 EEPROM 前 128 bytes（示意）</div>
+          <div class="reg-grid" id="regGrid"></div>
+          <div class="reg-legend">
+            <span><i style="background:var(--cyan)"></i>廠商資訊 (Vendor Name)</span>
+            <span><i style="background:var(--amber)"></i>波長 / 序號區段</span>
+            <span><i style="background:var(--bg-elevated)"></i>保留 / 未使用</span>
+          </div>
+        </div>
+
+        <h3 class="sub-title">DDM / DOM 即時診斷讀值</h3>
+        <p>當光路不通或 BER（誤碼率）過高，第一步就是進系統看 DDM 診斷數據：</p>
+        <div class="ddm-grid">
+          <div class="ddm-card"><div class="label">Temperature</div><div class="value">42.3°C</div><div class="range">正常 0~70°C</div></div>
+          <div class="ddm-card"><div class="label">Voltage</div><div class="value">3.29 V</div><div class="range">正常 3.1~3.5V</div></div>
+          <div class="ddm-card"><div class="label">Tx Power</div><div class="value">-2.1 dBm</div><div class="range">正常 -6~2 dBm</div></div>
+          <div class="ddm-card"><div class="label">Rx Power</div><div class="value warn">-14.8 dBm</div><div class="range">⚠ 偏低，需檢查光路</div></div>
+        </div>
+        <div class="callout warn"><b>實務判斷：</b>Rx Power 明顯低於正常範圍，通常代表光纖端面髒污、彎折過度，或對端發射功率不足，應優先排查物理連結。</div>
+      </section>
+
+      <!-- ================= 07 CMIS ================= -->
+      <section class="doc" id="cmis">
+        <div class="sec-tag">07 · Management Interface</div>
+        <h2 class="sec-title">CMIS — 新一代光模組管理介面</h2>
+        <p>SFF-8636 是 QSFP28 世代的暫存器地圖，但到了 <b>QSFP-DD / OSFP</b> 這種 400G/800G 模組，業界改用範圍更大、更有彈性的
+        <b>CMIS（Common Management Interface Specification）</b>。實習如果碰的是新一代模組，這是比 SFF-8636 更該優先熟悉的規範。</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <h4>◆ 為什麼需要 CMIS</h4>
+            <p>SFF-8636 的暫存器空間有限，無法應付多通道（8 個 lane）、多種應用模式（AppSel）與韌體更新等新需求，CMIS 定義了分頁（Page）機制擴充暫存器空間。</p>
+          </div>
+          <div class="card">
+            <h4>◆ 分頁（Page）架構</h4>
+            <p>CMIS 用 <code>Page 00h/01h/02h/10h/11h...</code> 把暫存器切成多個頁面，例如 Page 10h 存 lane 控制狀態，Page 11h 存即時 DOM 監控值。</p>
+          </div>
+        </div>
+
+        <table>
+          <tr><th>模組狀態機（State Machine）</th><th>說明</th></tr>
+          <tr><td class="mono"><b>ModuleLowPwr</b></td><td>剛插入，低功耗待機狀態</td></tr>
+          <tr><td class="mono"><b>ModulePwrUp</b></td><td>開始上電初始化</td></tr>
+          <tr><td class="mono"><b>ModuleReady</b></td><td>初始化完成，可設定應用模式（Application）並開始傳輸資料</td></tr>
+          <tr><td class="mono"><b>ModuleFault</b></td><td>初始化失敗，需檢查 Page 00h 的 fault 相關暫存器</td></tr>
+        </table>
+
+        <div class="callout">
+          <b>實習場景：</b>模組插上去 <code>ip link</code> 一直起不來，先別急著換模組——先用 CMIS 工具讀 Module State，確認是卡在
+          <code>ModuleLowPwr</code>（軟體沒下電）還是 <code>ModuleFault</code>（硬體真的壞了），能省下大量排查時間。
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- ================= 08 ip link ================= -->
+      <section class="doc" id="iplink">
+        <div class="sec-tag">08 · Linux 指令</div>
+        <h2 class="sec-title">ip link — 網路介面管理</h2>
+        <p>用來查看與控制交換器上所有實體、虛擬網路卡的狀態（Up 或 Down）。</p>
+        <div class="code-block">
+          <div class="cb-head"><span>bash</span><button class="copy-btn" data-copy="ip link show
+ip link set dev eth0 up">複製</button></div>
+          <pre><span class="prompt">$</span> ip link show                    <span class="comment"># 列出所有網路卡介面、MAC 地址與 MTU</span>
+<span class="prompt">$</span> ip link set dev eth0 up          <span class="comment"># 啟用名為 eth0 的網卡</span></pre>
+        </div>
+        <div class="callout">
+          <b>實習場景：</b>測試光模組插上去後，對應的交換器連接埠（例如 <code>et1</code> 或 <code>xe1</code>）有沒有順利 Link Up。
+          如果插上去還是 Down，用這個指令確認該介面是否被軟體 up 起來。
+        </div>
+      </section>
+
+      <!-- ================= 06 dmesg ================= -->
+      <section class="doc" id="dmesg">
+        <div class="sec-tag">09 · Linux 指令</div>
+        <h2 class="sec-title">dmesg — 核心訊息日誌</h2>
+        <p>顯示 Linux 核心（Kernel）的環形緩衝區訊息。所有硬體插拔、驅動程式錯誤、系統異常，都會第一時間寫在這裡。</p>
+        <div class="code-block">
+          <div class="cb-head"><span>bash</span><button class="copy-btn" data-copy="dmesg -T | grep -i optical
+dmesg -w">複製</button></div>
+          <pre><span class="prompt">$</span> dmesg -T | grep -i optical      <span class="comment"># 檢查光模組插拔時，底層有沒有抓到驅動與硬體</span>
+<span class="prompt">$</span> dmesg -w                         <span class="comment"># 即時監控核心訊息</span>
+<span class="warn">[  842.1123] optical: qsfp1 EEPROM read timeout, retrying...</span>
+<span class="warn">[  842.1129] optical: qsfp1 temp sensor over threshold</span></pre>
+        </div>
+        <p style="font-size:13.5px;">當把 400G 光模組插進插槽，終端機通常會跳出核心 log；若模組有硬體故障（I2C 讀寫失敗、過熱保護），<code>dmesg</code> 會直接跳紅字警告。</p>
+      </section>
+
+      <!-- ================= 07 i2c ================= -->
+      <section class="doc" id="i2c">
+        <div class="sec-tag">10 · Linux 指令</div>
+        <h2 class="sec-title">i2cdetect / i2cdump — I2C 匯流排偵測與讀取</h2>
+        <p>交換器內部控制風扇、溫度感測器、電源，以及讀取光模組內部 EEPROM 暫存器，都是透過 I2C 匯流排。</p>
+        <div class="code-block">
+          <div class="cb-head"><span>bash</span><button class="copy-btn" data-copy="i2cdetect -l
+i2cdetect -y 1
+i2cdump -y 1 0x50">複製</button></div>
+          <pre><span class="prompt">$</span> i2cdetect -l                    <span class="comment"># 列出所有 I2C 巴士（buses）</span>
+<span class="prompt">$</span> i2cdetect -y 1                  <span class="comment"># 掃描 1 號巴士，看上面掛了哪些晶片/光模組</span>
+<span class="prompt">$</span> i2cdump -y 1 0x50               <span class="comment"># 把 0x50 位址的暫存器數值整張印出來</span></pre>
+        </div>
+        <div class="callout">
+          <b>實習場景：</b>如果交換機認不出某個光模組，直接用 <code>i2cdump</code> 撈 <code>0x50</code> 地址的十六進位代碼，對照 MSA 規格書確認寫錯的欄位。
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- ================= 11 ASIC/SDK ================= -->
+      <section class="doc" id="asic-sdk">
+        <div class="sec-tag">11 · ASIC / SDK</div>
+        <h2 class="sec-title">Broadcom SDK 診斷指令</h2>
+        <p>當問題出在轉發面（ASIC）而不是 Linux 層，就要進 ASIC 廠商提供的 SDK 診斷殼層（diag shell），直接跟晶片對話。</p>
+
+        <div class="code-block">
+          <div class="cb-head"><span>bcmcmd</span><button class="copy-btn" data-copy="BCM.0> ps
+BCM.0> show counters
+BCM.0> l2 show
+BCM.0> port xe1 status">複製</button></div>
+          <pre><span class="prompt">BCM.0&gt;</span> ps                        <span class="comment"># 顯示所有連接埠即時狀態（linkscan）</span>
+<span class="prompt">BCM.0&gt;</span> show counters              <span class="comment"># 顯示各埠封包計數（含 CRC error、drop）</span>
+<span class="prompt">BCM.0&gt;</span> l2 show                     <span class="comment"># 列出 ASIC 硬體 MAC table</span>
+<span class="prompt">BCM.0&gt;</span> port xe1 status             <span class="comment"># 查詢單一連接埠的實體層狀態</span></pre>
+        </div>
+
+        <table>
+          <tr><th>常見指令</th><th>用途</th></tr>
+          <tr><td class="mono"><b>ps</b></td><td>Port Status，最常用的第一道排查指令，看哪個埠 Up/Down</td></tr>
+          <tr><td class="mono"><b>show counters</b></td><td>檢查是否有 CRC error、drop、collision 等硬體層級錯誤累積</td></tr>
+          <tr><td class="mono"><b>l2 show / l3 show</b></td><td>查詢 ASIC 硬體 MAC table / 路由表，跟軟體層看到的是否一致</td></tr>
+          <tr><td class="mono"><b>phy diag</b></td><td>查詢 SerDes/PHY 訊號品質（如 eye height）</td></tr>
+        </table>
+
+        <div class="callout warn">
+          <b>觀念釐清：</b><code>ip link</code> 是 Linux 核心看到的介面狀態；<code>ps</code>/<code>port status</code> 是 ASIC 硬體實際看到的狀態。
+          兩者不一致時（軟體顯示 Up 但 ASIC 顯示 Down），問題通常出在驅動程式或 SDK 初始化，而不是光模組本身。
+        </div>
+      </section>
+
+      <!-- ================= 12 CONSOLE ================= -->
+      <section class="doc" id="console">
+        <div class="sec-tag">12 · Console</div>
+        <h2 class="sec-title">Console 連線：跟交換器溝通的第一道門</h2>
+        <p>當交換器還沒設定 IP、或系統開機失敗（Kernel Panic）時，無法透過網路（SSH）連線，唯一的救星是實體 Console 線（RJ45 轉 DB9/USB）序列埠連線。</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <h4>◆ minicom（Linux）</h4>
+            <ol>
+              <li>插上 USB 轉 Serial 線，<code>ls /dev/ttyUSB*</code> 確認裝置名稱</li>
+              <li>輸入 <code>sudo minicom -s</code> 進入設定選單</li>
+              <li>選擇 <b>Serial Port Setup</b>，設為 <code>/dev/ttyUSB0</code></li>
+              <li>Bps/Par/Bits 設為 <b>115200 8N1</b></li>
+              <li>Hardware Flow Control 務必設為 <b>No</b>，否則鍵盤打不出字</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h4>◆ PuTTY（Windows）</h4>
+            <ol>
+              <li>裝置管理員確認 USB 轉接線佔用的 COM Port（如 <code>COM3</code>）</li>
+              <li>連線類型選擇 <b>Serial</b></li>
+              <li>Serial line 輸入 <code>COM3</code>，Speed 輸入 <code>115200</code></li>
+              <li>點選 Open，按 Enter 即可看到登入畫面或 ONIE Bootloader 畫面</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="kv">
+          <div class="k">Baud Rate</div><div class="v">115200</div>
+          <div class="k">Data Bits</div><div class="v">8</div>
+          <div class="k">Parity</div><div class="v">None</div>
+          <div class="k">Stop Bits</div><div class="v">1</div>
+          <div class="k">Flow Control</div><div class="v">None</div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- ================= 09 VLAN ================= -->
+      <section class="doc" id="vlan">
+        <div class="sec-tag">13 · 網路概念</div>
+        <h2 class="sec-title">VLAN — 虛擬區域網路</h2>
+        <p>在實體交換器上透過軟體切割出多個「邏輯上獨立的廣播域」。不同 VLAN 的設備，在沒有路由器（Layer 3）協助下<b>絕對無法互通</b>。</p>
+
+        <svg class="diagram" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="30" width="150" height="50" rx="6" fill="#10161d" stroke="#212c38"/>
+          <text x="95" y="60" fill="#e8eef4" font-family="JetBrains Mono" font-size="12" text-anchor="middle">Port 1 (VLAN 10)</text>
+          <rect x="20" y="110" width="150" height="50" rx="6" fill="#10161d" stroke="#212c38"/>
+          <text x="95" y="140" fill="#e8eef4" font-family="JetBrains Mono" font-size="12" text-anchor="middle">Port 2 (VLAN 10)</text>
+
+          <line x1="170" y1="55" x2="480" y2="90" stroke="#4fd8c9" stroke-width="1.5"/>
+          <line x1="170" y1="135" x2="480" y2="100" stroke="#4fd8c9" stroke-width="1.5"/>
+          <text x="320" y="75" fill="#8390a0" font-family="JetBrains Mono" font-size="11" text-anchor="middle">802.1Q Trunk（Tag）</text>
+
+          <rect x="490" y="65" width="180" height="60" rx="6" fill="#10161d" stroke="#f0ab5d"/>
+          <text x="580" y="90" fill="#f0ab5d" font-family="JetBrains Mono" font-size="12" text-anchor="middle">遠端交換器</text>
+          <text x="580" y="108" fill="#8390a0" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle">Trunk Port 傳輸多個 VLAN</text>
+        </svg>
+
+        <table>
+          <tr><th>Port 類型</th><th>說明</th></tr>
+          <tr><td class="mono"><b>Access Port</b></td><td>通常接一般電腦，只屬於單一 VLAN</td></tr>
+          <tr><td class="mono"><b>Trunk Port</b></td><td>交換器互連通道，同時傳輸多個 VLAN，並用 802.1Q Tag 區分</td></tr>
+        </table>
+        <div class="callout">
+          <b>測試實務：</b>設定特定 VLAN Tag，驗證交換機 ASIC 有沒有確實做好硬體過濾（Tag Filter），不該通的 VLAN 有沒有確實擋掉。
+        </div>
+      </section>
+
+      <!-- ================= 10 LACP ================= -->
+      <section class="doc" id="lacp">
+        <div class="sec-tag">14 · 網路概念</div>
+        <h2 class="sec-title">LACP — 網路聚合協定</h2>
+        <p>將<b>多條實體網路線</b>捆綁在一起，邏輯上合併成一條高頻寬、具備備援能力的虛擬大水管（Port Channel / Aggregation Group）。</p>
+        <div class="grid-2">
+          <div class="card">
+            <h4>◆ 頻寬加倍</h4>
+            <p>兩條 10G 的線綁在一起，邏輯上可提供 20G 頻寬。</p>
+          </div>
+          <div class="card">
+            <h4>◆ 容錯備援 Failover</h4>
+            <p>其中一條實體線被拔掉，流量會在小於 50 毫秒內無縫轉移到另一條線，網路不會中斷。</p>
+          </div>
+        </div>
+        <div class="callout warn"><b>測試實務：</b>測試網通設備時會瘋狂拔線——一邊跑流量測試儀，一邊手動拔掉 LACP 群組中的某條光纖，觀察封包遺失率（Packet Loss）是否維持在極低範圍。</div>
+      </section>
+
+      <!-- ================= 11 MTU ================= -->
+      <section class="doc" id="mtu">
+        <div class="sec-tag">15 · 網路概念</div>
+        <h2 class="sec-title">MTU / Jumbo Frame</h2>
+        <p>乙太網路卡在單一影格（Frame）中能傳輸的最大資料載荷（Payload），預設一般為 <b>1500 Bytes</b>。</p>
+
+        <svg class="diagram" viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg">
+          <text x="10" y="25" fill="#8390a0" font-family="JetBrains Mono" font-size="11">標準 MTU 1500</text>
+          <rect x="10" y="35" width="90" height="22" rx="3" fill="#161f29" stroke="#212c38"/>
+          <text x="10" y="70" fill="#f0ab5d" font-family="JetBrains Mono" font-size="11">Jumbo Frame 9000</text>
+          <rect x="10" y="80" width="540" height="22" rx="3" fill="#161f29" stroke="#f0ab5d"/>
+          <text x="620" y="96" fill="#586675" font-family="JetBrains Mono" font-size="10.5">6x 載量</text>
+        </svg>
+
+        <p>在 100G/400G 高速、大資料量的 AI 數據中心裡，封包數量極其龐大。若維持 1500 限制，CPU 光是拆解、處理封包標頭就會過載，因此會把 MTU 放大到 <b>9000</b> 甚至更高。</p>
+        <div class="callout warn">
+          <b>注意：</b>兩端設備（包含中間的交換器）MTU 設定<b>必須一致</b>。若端點送出 9000 Bytes 且設定不可切割（DF flag），中途交換器 MTU 只設 1500 時，該封包會直接被丟棄（Drop）。
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- ================= 16 TEST EQUIPMENT ================= -->
+      <section class="doc" id="test-equipment">
+        <div class="sec-tag">16 · 測試與除錯</div>
+        <h2 class="sec-title">光功率計 / OTDR 基本判讀</h2>
+        <p>軟體指令查不出來的問題，最後都要靠實體儀器量測光路本身健不健康。</p>
+
+        <div class="grid-2">
+          <div class="card">
+            <h4>◆ 光功率計 (Optical Power Meter)</h4>
+            <p>直接量測某一點的光功率（單位 dBm）。最常見用法：拔下模組端的跳線，接上功率計，量測對端實際送過來的光功率，跟模組規格書上的接收靈敏度（Rx Sensitivity）比對。</p>
+            <div class="kv" style="margin-top:8px;">
+              <div class="k">量測值 &gt; 靈敏度</div><div class="v">代表光路正常，問題可能在模組本身或設定</div>
+              <div class="k">量測值 &lt; 靈敏度</div><div class="v">代表光路本身有問題（衰減過大、斷點、端面髒污）</div>
+            </div>
+          </div>
+          <div class="card">
+            <h4>◆ OTDR (光時域反射儀)</h4>
+            <p>對長距離光纖特別有用：從一端發出光脈衝，依反射光回來的時間與強度，畫出整條光纖的「損耗地圖」。可以直接定位<b>斷點在幾公尺處</b>，或哪一段接頭損耗異常大。</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <b>實習場景：</b>模組亮紅燈、Link Down，先用光功率計量兩端實際收到的光功率，比對規格書門檻值，往往幾分鐘就能判斷「是模組壞、還是光纖本身斷了」，比盲目換模組有效率得多。
+        </div>
+      </section>
+
+      <!-- ================= 17 TRAFFIC TEST ================= -->
+      <section class="doc" id="traffic-test">
+        <div class="sec-tag">17 · 測試與除錯</div>
+        <h2 class="sec-title">Ixia / Spirent 流量測試</h2>
+        <p>光路通了、Link Up 了，不代表這條鏈路在滿載流量下也沒問題。流量產生器（Traffic Generator）就是用來灌爆整條鏈路、驗證交換機在高壓下的表現。</p>
+
+        <h3 class="sub-title">典型測試流程</h3>
+        <ol class="plain" style="padding-left:20px; color:var(--text-muted);">
+          <li style="margin-bottom:8px;"><b>1. 拓樸連接：</b>把 Ixia/Spirent 埠透過光纖接到待測交換機的兩個（或多個）連接埠</li>
+          <li style="margin-bottom:8px;"><b>2. 設定封包參數：</b>指定封包大小（例如 64/512/1518/9000 bytes）、流量速率（%線速）、封包型態</li>
+          <li style="margin-bottom:8px;"><b>3. 開始灌流量：</b>從 A 埠打流量到 B 埠，同時在儀器上即時監看發送/接收計數</li>
+          <li style="margin-bottom:8px;"><b>4. 記錄結果：</b>Packet Loss（封包遺失率）、Latency（延遲）、Jitter（延遲抖動）</li>
+        </ol>
+
+        <div class="callout">
+          <b>RFC 2544：</b>業界標準的網路設備效能測試方法，主要驗證四項指標——
+          <span class="tag cyan">Throughput</span><span class="tag cyan">Latency</span><span class="tag cyan">Frame Loss</span><span class="tag cyan">Back-to-back</span>，
+          面試或報告中常直接被問「有沒有做過 RFC2544 測試」。
+        </div>
+
+        <div class="callout warn">
+          <b>LACP 拔線測試（延伸 §14）：</b>灌著滿載流量的同時，手動拔掉 LACP 群組中的一條光纖，觀察 Packet Loss 是否只出現極短暫的尖峰（理想 &lt; 50ms 內恢復），這是驗證容錯機制最直接的方式。
+        </div>
+      </section>
+
+      <!-- ================= 18 SOP ================= -->
+      <section class="doc" id="troubleshoot-sop">
+        <div class="sec-tag">18 · 測試與除錯</div>
+        <h2 class="sec-title">除錯流程 SOP：Link Down 排查</h2>
+        <p>把前面章節的指令串成一套實戰排查順序——遇到「連接埠燈不亮 / Link Down」時，建議按照下面順序，而不是亂槍打鳥。</p>
+
+        <svg class="diagram" viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 Z" fill="#4fd8c9"/>
+            </marker>
+          </defs>
+          <!-- step boxes -->
+          <rect x="20" y="10" width="220" height="52" rx="7" fill="#10161d" stroke="#4fd8c9"/>
+          <text x="130" y="32" fill="#4fd8c9" font-family="JetBrains Mono" font-size="12" text-anchor="middle" font-weight="600">1. ip link show</text>
+          <text x="130" y="50" fill="#8390a0" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle">軟體介面是否 UP？</text>
+
+          <rect x="260" y="10" width="220" height="52" rx="7" fill="#10161d" stroke="#212c38"/>
+          <text x="370" y="32" fill="#e8eef4" font-family="JetBrains Mono" font-size="12" text-anchor="middle" font-weight="600">2. bcmcmd ps</text>
+          <text x="370" y="50" fill="#8390a0" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle">ASIC 硬體是否 UP？</text>
+
+          <rect x="500" y="10" width="200" height="52" rx="7" fill="#10161d" stroke="#212c38"/>
+          <text x="600" y="32" fill="#e8eef4" font-family="JetBrains Mono" font-size="12" text-anchor="middle" font-weight="600">3. dmesg -T</text>
+          <text x="600" y="50" fill="#8390a0" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle">核心層有無報錯？</text>
+
+          <rect x="500" y="110" width="200" height="52" rx="7" fill="#10161d" stroke="#212c38"/>
+          <text x="600" y="132" fill="#e8eef4" font-family="JetBrains Mono" font-size="12" text-anchor="middle" font-weight="600">4. i2cdump 0x50</text>
+          <text x="600" y="150" fill="#8390a0" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle">模組 EEPROM 讀得到嗎？</text>
+
+          <rect x="260" y="110" width="200" height="52" rx="7" fill="#10161d" stroke="#f0ab5d"/>
+          <text x="360" y="132" fill="#f0ab5d" font-family="JetBrains Mono" font-size="12" text-anchor="middle" font-weight="600">5. 光功率計量測</text>
+          <text x="360" y="150" fill="#8390a0" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle">光路本身正常嗎？</text>
+
+          <rect x="20" y="110" width="200" height="52" rx="7" fill="#10161d" stroke="#e2685f"/>
+          <text x="120" y="132" fill="#e2685f" font-family="JetBrains Mono" font-size="12" text-anchor="middle" font-weight="600">6. 檢查對端設備</text>
+          <text x="120" y="150" fill="#8390a0" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle">確認雙方設定一致</text>
+
+          <!-- arrows -->
+          <line x1="240" y1="36" x2="255" y2="36" stroke="#4fd8c9" marker-end="url(#arrow2)"/>
+          <line x1="480" y1="36" x2="495" y2="36" stroke="#4fd8c9" marker-end="url(#arrow2)"/>
+          <line x1="600" y1="62" x2="600" y2="105" stroke="#4fd8c9" marker-end="url(#arrow2)"/>
+          <line x1="495" y1="136" x2="465" y2="136" stroke="#4fd8c9" marker-end="url(#arrow2)"/>
+          <line x1="255" y1="136" x2="225" y2="136" stroke="#4fd8c9" marker-end="url(#arrow2)"/>
+
+          <text x="360" y="210" fill="#586675" font-family="JetBrains Mono" font-size="11" text-anchor="middle">由左而右：軟體層 → 硬體層 → 光路層 → 對端設備，逐層排除</text>
+          <text x="360" y="230" fill="#586675" font-family="JetBrains Mono" font-size="11" text-anchor="middle">越前面的檢查成本越低，永遠先做便宜的檢查，再動用儀器</text>
+        </svg>
+
+        <table>
+          <tr><th>步驟</th><th>指令 / 動作</th><th>對應章節</th></tr>
+          <tr><td>1</td><td class="mono">ip link show</td><td>§08</td></tr>
+          <tr><td>2</td><td class="mono">bcmcmd &gt; ps</td><td>§11</td></tr>
+          <tr><td>3</td><td class="mono">dmesg -T | grep -i optical</td><td>§09</td></tr>
+          <tr><td>4</td><td class="mono">i2cdump -y &lt;bus&gt; 0x50</td><td>§10 / §06</td></tr>
+          <tr><td>5</td><td>光功率計量測 Rx Power</td><td>§16</td></tr>
+          <tr><td>6</td><td>確認對端 VLAN/Speed/Duplex 設定一致</td><td>§13</td></tr>
+        </table>
+      </section>
+
+      <!-- ================= 19 GLOSSARY ================= -->
+      <section class="doc" id="glossary">
+        <div class="sec-tag">19 · 參考</div>
+        <h2 class="sec-title">縮寫速查表</h2>
+        <p>開會、面試時最常見的縮寫，快速對照用：</p>
+        <table>
+          <tr><th>縮寫</th><th>全稱</th><th>意思</th></tr>
+          <tr><td class="mono"><b>DDM/DOM</b></td><td>Digital Diagnostic/Digital Optical Monitoring</td><td>光模組即時溫度/電壓/光功率診斷數據</td></tr>
+          <tr><td class="mono"><b>CMIS</b></td><td>Common Management Interface Specification</td><td>新一代光模組（QSFP-DD/OSFP）管理介面規範</td></tr>
+          <tr><td class="mono"><b>MSA</b></td><td>Multi-Source Agreement</td><td>業界共同制定的光模組規格與暫存器地圖協議</td></tr>
+          <tr><td class="mono"><b>FEC</b></td><td>Forward Error Correction</td><td>前向糾錯，容許一定比例誤碼下仍能還原正確資料</td></tr>
+          <tr><td class="mono"><b>BER</b></td><td>Bit Error Rate</td><td>誤碼率，衡量鏈路訊號品質的核心指標</td></tr>
+          <tr><td class="mono"><b>CDR</b></td><td>Clock and Data Recovery</td><td>從收到的訊號中重新萃取時脈與資料，修正抖動</td></tr>
+          <tr><td class="mono"><b>VCSEL</b></td><td>Vertical-Cavity Surface-Emitting Laser</td><td>短距多模模組常用的雷射型態，成本較低</td></tr>
+          <tr><td class="mono"><b>EML/DFB</b></td><td>Electro-absorption Modulated Laser / Distributed Feedback</td><td>長距單模模組常用雷射，功率更穩定精確</td></tr>
+          <tr><td class="mono"><b>DAC/AOC</b></td><td>Direct Attach Cable / Active Optical Cable</td><td>DAC 為銅纜直連，AOC 為內建光電轉換的主動光纜</td></tr>
+          <tr><td class="mono"><b>LACP</b></td><td>Link Aggregation Control Protocol</td><td>多條實體線捆綁成一條邏輯鏈路的協定</td></tr>
+          <tr><td class="mono"><b>SAI</b></td><td>Switch Abstraction Interface</td><td>SONiC 用來統一介接不同 ASIC 廠商的抽象層</td></tr>
+        </table>
+      </section>
+
+      <div class="divider"></div>
+
+      <!-- ================= ROADMAP ================= -->
+      <section class="doc" id="roadmap">
+        <div class="sec-tag">20 · Roadmap</div>
+        <h2 class="sec-title">擴充路線圖</h2>
+        <p>這份手冊會持續擴充，以下是規劃中、尚未收錄的主題：</p>
+        <div class="roadmap">
+          <ul>
+            <li><span class="box"></span><b>SONiC 系統架構深入</b> — Redis DB、SAI 介接 ASIC 原理<span class="status">計畫中</span></li>
+            <li><span class="box"></span><b>BGP / OSPF 路由協定</b> — 資料中心常見路由設計（Leaf-Spine）<span class="status">計畫中</span></li>
+            <li><span class="box"></span><b>光路除錯進階</b> — Eye Diagram、示波器判讀、SerDes 訊號品質分析<span class="status">計畫中</span></li>
+            <li><span class="box"></span><b>光模組韌體升級流程</b> — 韌體版本管理與升級注意事項<span class="status">計畫中</span></li>
+            <li><span class="box"></span><b>STP/RSTP、LLDP、ECMP</b> — 更多二三層網路協定<span class="status">計畫中</span></li>
+            <li><span class="box"></span><b>自動化測試框架</b> — Python (netmiko/paramiko) + pytest 建立回歸測試<span class="status">計畫中</span></li>
+          </ul>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<footer>SWITCH // HANDBOOK — 內部知識庫，持續更新中 · v0.1</footer>
+
+<script>
+  // ---- typewriter hero terminal ----
+  const termBody = document.getElementById('termBody');
+  const lines = [
+    {t:'intern@edgecore-switch:~$ ip link show', cls:'prompt'},
+    {t:'2: et1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9000', cls:''},
+    {t:'    link/ether 3c:2c:99:aa:bb:cc  state UP', cls:''},
+    {t:'intern@edgecore-switch:~$ dmesg -T | grep -i optical', cls:'prompt'},
+    {t:'[Fri Jul 17 10:22:01] optical: qsfp1 module inserted, type=QSFP-DD', cls:'ok'},
+    {t:'intern@edgecore-switch:~$ i2cdetect -y 1', cls:'prompt'},
+    {t:'50: 50 -- -- -- -- -- -- -- -- -- -- -- -- -- -- --', cls:''},
+  ];
+  let li = 0, ci = 0;
+  function typeLine(){
+    if(li >= lines.length){
+      termBody.innerHTML += '<div class="line"><span class="prompt">intern@edgecore-switch:~$</span> <span class="caret"></span></div>';
+      return;
+    }
+    const cur = lines[li];
+    if(ci === 0){
+      const div = document.createElement('div');
+      div.className = 'line ' + cur.cls;
+      div.setAttribute('data-full', cur.t);
+      termBody.appendChild(div);
+    }
+    const div = termBody.lastChild;
+    ci += 3;
+    div.textContent = cur.t.slice(0, ci);
+    if(ci >= cur.t.length){
+      li++; ci = 0;
+      setTimeout(typeLine, 120);
+    } else {
+      setTimeout(typeLine, 12);
+    }
+  }
+  typeLine();
+
+  // ---- register grid (EEPROM hex mock) ----
+  const regGrid = document.getElementById('regGrid');
+  const hexVals = [];
+  for(let i=0;i<128;i++){ hexVals.push(Math.floor(Math.random()*255).toString(16).padStart(2,'0')); }
+  hexVals.forEach((v, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'reg-cell';
+    if(idx >= 20 && idx <= 35) cell.className += ' hl';
+    if(idx >= 60 && idx <= 67) cell.className += ' hl2';
+    cell.textContent = v;
+    regGrid.appendChild(cell);
+  });
+
+  // ---- copy buttons ----
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.getAttribute('data-copy')).then(() => {
+        const old = btn.textContent;
+        btn.textContent = '已複製';
+        setTimeout(() => btn.textContent = old, 1200);
+      });
+    });
+  });
+
+  // ---- scrollspy ----
+  const sections = document.querySelectorAll('section.doc');
+  const navLinks = document.querySelectorAll('.nav-link');
+  const crumb = document.getElementById('crumb');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        const id = entry.target.id;
+        navLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
+        crumb.textContent = '~/' + id;
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => io.observe(s));
+
+  // ---- mobile nav ----
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+  navLinks.forEach(a => a.addEventListener('click', () => sidebar.classList.remove('open')));
+</script>
+
+</body>
+</html>
