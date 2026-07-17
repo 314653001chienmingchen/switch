@@ -10,6 +10,8 @@
 
 * TX（發射端，來自 Transmit）：負責將內部處理好的訊號轉換為光訊號（光波）發送出去。
 * RX（接收端，來自 Receive）：負責捕捉外部傳來的光訊號，並將其轉換回設備可以處理的電子訊號。
+
+
 | 項目 | SFP 系列 | QSFP 系列 |
 |------|----------|-----------|
 | 全名 | Small Form-factor Pluggable | Quad Small Form-factor Pluggable |
